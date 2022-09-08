@@ -524,7 +524,7 @@
                                     var data = [{
                                       type: "pie",
                                       values:  {{dep_id.3.6}},
-                                      labels:['Body Scan', 'Deep Breathing', 'Enjoyable activities', 'Time Out'],
+                                      labels:['Deep Breathing','Time Out' ,'Body Scan' ,'Enjoyable activities'],
                                       marker: {
                                           colors: ['#2ECC71', '#E74C3C', '#3498DB', '#F4D03F']
                                       },
@@ -560,14 +560,6 @@
                                       }
 
                                     Plotly.newPlot(gd, data, layout);
-
-
-
-
-
-
-
-
                                 </script>
                             </div>
                             <div class="tab-pane fade" id="about_sum{{dep_id.0}}" role="tabpanel">
@@ -581,7 +573,7 @@
                                                     Plotly.plot(gd, {
                                                         data: [{
                                                             "line": {"color": "#2ECC71", "width": 3},
-                                                            "name": "Body Scan",
+                                                            "name": "Deep Breathing",
                                                             "type": "scatter",
                                                             "x": {{dep_id.3.8.0.0.1|safe}},
                                                             "y": {{dep_id.3.8.0.0.0}},
@@ -593,7 +585,7 @@
                                                             }
                                                         },{
                                                             "line": {"color": "#E74C3C", "width": 3},
-                                                            "name": "Deep Breathing",
+                                                            "name": "Time Out",
                                                             "type": "scatter",
                                                             "x": {{dep_id.3.8.0.1.1|safe}},
                                                             "y": {{dep_id.3.8.0.1.0}},
@@ -605,7 +597,7 @@
                                                             }
                                                         },{
                                                             "line": {"color": "#3498DB", "width": 3},
-                                                            "name": "Enjoyable activities",
+                                                            "name": "Body Scan",
                                                             "type": "scatter",
                                                             "x": {{dep_id.3.8.0.2.1|safe}},
                                                             "y": {{dep_id.3.8.0.2.0}},
@@ -617,7 +609,7 @@
                                                             }
                                                         },{
                                                             "line": {"color": "#F4D03F", "width": 3},
-                                                            "name": "Time Out",
+                                                            "name": "Enjoyable activities",
                                                             "type": "scatter",
                                                             "x": {{dep_id.3.8.0.3.1|safe}},
                                                             "y": {{dep_id.3.8.0.3.0}},
@@ -696,7 +688,6 @@
                                                                 },
                                                                 "yaxis": {
                                                                     "title": "Count",
-                                                                    dtick: 1,
                                                                     },
                                                         },
                                                         useResizeHandler: true,

@@ -15,9 +15,18 @@ import datetime
 from .models import *
 
 postrecomm_list = []
+postrecomm_list = []
 postrecomm_pie = [0, 0, 0]
 postrecomm_sum = []
-
+deployment_date_table = {"6092021": ["2021-06-09 00:00:00", "2021-11-13 11:59:59"],
+                         "7132021": ["2021-07-13 00:00:00", "2021-12-03 11:59:59"],
+                         "8022021": ["2021-08-02 00:00:00", "2021-12-07 11:59:59"],
+                         "10282021": ["2021-10-28 00:00:00", ""],
+                         "1172022": ["2022-01-17 00:00:00", ""],
+                         "2182022": ["2022-02-18 00:00:00", ""],
+                         "3162022": ["2022-03-16 00:00:00", ""],
+                         "5062022": ["2022-05-06 00:00:00", ""],
+                         "5122022": ["2022-05-12 00:00:00", ""]}
 action_lookup_table = ["Time to take a brief break.",
                        "Take a quick moment for yourself.",
                        "Take some time to “put on your oxygen mask.",
@@ -53,95 +62,9 @@ action_lookup_table = ["Time to take a brief break.",
                        " make you both feel calmer?",
                        "Trying engaging [your family member/insert name] in an activity or task that<br>"
                        "provides them with a sense of ease.",
-                       "Grab your activity box"
+                       "Grab your activity box",
+                       "Now might be a good time to [Load Dynamic Activities]"
                        ]
-
-
-def start_up():
-    cursor = connections['ema'].cursor()
-    cursor.execute(
-        "SELECT DISTINCT TimeReceived, Response,QuestionName FROM `sch_data`.reward_data where QuestionName REGEXP \"daytime:postrecomm:helpfulno:1|daytime:postrecomm:helpfulyes:1\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND dep_id = (%s) ORDER BY TimeReceived",
-        id)
-    postrecomm_db = cursor.fetchall()
-
-    postrecomm_yes_timestamp = []
-    postrecomm_no_timestamp = []
-    postrecomm_yes = []
-    postrecomm_no = []
-    postrecomm_yes_text = []
-    postrecomm_no_text = []
-
-    now = datetime.datetime.now()
-
-    if (len(postrecomm_db)):
-        postrecomm_sum = [[0], [str(postrecomm_db[0][0])], [0], [str(postrecomm_db[0][0])], [0],
-                          [str(postrecomm_db[0][0])]]
-    else:
-        postrecomm_sum = [[0], [now.strftime("%Y-%m-%d %H:%M:%S")], [0], [now.strftime("%Y-%m-%d %H:%M:%S")], [0],
-                          [now.strftime("%Y-%m-%d %H:%M:%S")]]
-
-    for item in postrecomm_db:
-
-        time = datetime.datetime.strptime(str(item[0]), "%Y-%m-%d %H:%M:%S")
-        upper_bound = time + datetime.timedelta(0, 10)
-        lower_bound = time - datetime.timedelta(0, 10)
-        action_for_response = []
-
-        while not action_for_response:
-            cursor.execute(
-                "SELECT DISTINCT time, action FROM `sch_data`.`ema_storing_data` WHERE \"" + lower_bound.strftime(
-                    "%Y-%m-%d %H:%M:%S") + "\"< time and time <\"" + upper_bound.strftime(
-                    "%Y-%m-%d %H:%M:%S") + "\" AND dep_id = (%s) ORDER BY time",
-                id)
-            upper_bound = upper_bound + datetime.timedelta(0, 10)
-            lower_bound = lower_bound - datetime.timedelta(0, 10)
-            action_for_response = cursor.fetchall()
-
-        if item[2] == "daytime:postrecomm:helpfulyes:1":
-            postrecomm_yes.append(int(item[1]))
-            postrecomm_yes_timestamp.append(str(item[0]))
-            postrecomm_yes_text.append(str(action_for_response[0][0]) + "<br>Action:" + str(action_for_response[0][1]) +
-                                       "<br>" + action_lookup_table[action_for_response[0][1]])
-        else:
-            bar_data = ""
-            if "1" in list(item[1]):
-                bar_data += " I didn’t have enough time <br>" + str(action_for_response[0][0]) + "<br>Action:" + str(
-                    action_for_response[0][1] + "<br>" + action_lookup_table[action_for_response[0][1]])
-                postrecomm_pie[0] += 1
-                postrecomm_sum[0].append(postrecomm_pie[0])
-                postrecomm_sum[1].append(str(item[0]))
-
-            if "2" in list(item[1]):
-                bar_data += " I didn’t think it would help <br>" + str(action_for_response[0][0]) + "<br>Action:" + str(
-                    action_for_response[0][1] + "<br>" + action_lookup_table[action_for_response[0][1]])
-                postrecomm_pie[1] += 1
-                postrecomm_sum[2].append(postrecomm_pie[1])
-                postrecomm_sum[3].append(str(item[0]))
-
-            if "3" in list(item[1]):
-                bar_data += " I didn’t see the message <br>" + str(action_for_response[0][0]) + "<br>Action:" + str(
-                    action_for_response[0][1] + "<br>" + action_lookup_table[action_for_response[0][1]])
-                postrecomm_pie[2] += 1
-                postrecomm_sum[4].append(postrecomm_pie[2])
-                postrecomm_sum[5].append(str(item[0]))
-
-            postrecomm_no_text.append(bar_data)
-            postrecomm_no.append(-1)
-            postrecomm_no_timestamp.append(str(item[0]))
-    postrecomm_list.append(postrecomm_yes_timestamp)
-    postrecomm_list.append(postrecomm_no_timestamp)
-    postrecomm_list.append(postrecomm_yes)
-    postrecomm_list.append(postrecomm_no)
-    postrecomm_list.append(postrecomm_yes_text)
-    postrecomm_list.append(postrecomm_no_text)
-
-    postrecomm_sum[0].append(postrecomm_sum[0][-1])
-    postrecomm_sum[1].append(now.strftime("%Y-%m-%d %H:%M:%S"))
-    postrecomm_sum[2].append(postrecomm_sum[2][-1])
-    postrecomm_sum[3].append(now.strftime("%Y-%m-%d %H:%M:%S"))
-    postrecomm_sum[4].append(postrecomm_sum[4][-1])
-    postrecomm_sum[5].append(now.strftime("%Y-%m-%d %H:%M:%S"))
-    return 0
 
 
 def tracking(request):
@@ -151,16 +74,23 @@ def tracking(request):
     dep_id = cursor.fetchall()
     tracking_list = []
     for id in dep_id:
-        cursor.execute(
-            "SELECT time, event_vct FROM `sch_data`.`ema_storing_data` WHERE time > \"2021-06-01 00:00:00\" AND dep_id = (%s) ORDER BY time",
-            id)
+        if id[0] in deployment_date_table:
+            date = deployment_date_table[id[0]]
+            if date[1] != "":
+                emo_var_SQL = "SELECT time, event_vct FROM `sch_data`.`ema_storing_data` WHERE time between\"" + date[0] + "\" AND \""+ date[1]+"\" AND dep_id = (%s) ORDER BY time"
+            elif date[1] == "":
+                emo_var_SQL = "SELECT time, event_vct FROM `sch_data`.`ema_storing_data` WHERE time >\"" + date[0] + "\" AND dep_id = (%s) ORDER BY time"
+            else:
+                emo_var_SQL = "SELECT time, event_vct FROM `sch_data`.`ema_storing_data` WHERE time > \"2021-06-01 00:00:00\" AND dep_id = (%s) ORDER BY time"
+        else:
+            emo_var_SQL = "SELECT time, event_vct FROM `sch_data`.`ema_storing_data` WHERE time > \"2021-06-01 00:00:00\" AND dep_id = (%s) ORDER BY time"
+        cursor.execute(emo_var_SQL, id)
         emo_var = cursor.fetchall()
 
         # baseline
         cursor.execute(
             "SELECT TimeReceived, Response FROM `sch_data`.reward_data where QuestionName REGEXP \"baseline:recomm:likertconfirm:1\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND dep_id = (%s) ORDER BY TimeReceived",
             id)
-
         baseline_db = cursor.fetchall()
         baseline_list = []
         baseline_timestamp = []
@@ -172,16 +102,13 @@ def tracking(request):
         baseline_list.append(baseline_response)
 
         # emotion
-        start_from = emo_var[0][0].replace(minute=0, second=0, microsecond=0)
-        period = datetime.timedelta(hours=1)
-        id_str = str(id[0])
-
-        if len(id_str) == 7:
-            start_date = datetime.datetime(int(id_str[3:7]), int(id_str[0]), int(id_str[1:3]))
-        elif len(id_str) == 8:
-            start_date = datetime.datetime(int(id_str[4:8]), int(id_str[0:2]), int(id_str[2:4]))
+        if date[1] != "":
+            start_date = datetime.datetime.strptime(date[0], "%Y-%m-%d %H:%M:%S")
+        elif date[1] == "":
+            start_date = datetime.datetime.strptime(date[0], "%Y-%m-%d %H:%M:%S")
         else:
-            start_date = start_from
+            start_date = emo_var[0][0].replace(minute=0, second=0, microsecond=0)
+
         intervention_period = start_date + datetime.timedelta(days=30)
 
         intervention_period_counter = [0, 0, 0, 0, 0, 0]
@@ -189,87 +116,46 @@ def tracking(request):
         total_emotion_counter = [0, 0, 0, 0, 0, 0]
         counted_period = [0, 0, 0, 0, 0, 0]
 
-        time_stump = []
-        happy = []
-        nature = []
-        angry = []
-        sad = []
-        other = []
-        conflict = []
+        emotion_steps = [[],[],[],[],[],[],[]]
         counter = 0
+        counting_step = datetime.timedelta(hours=1)
+
+        def intervention_period_helper(index):
+            if item[0] > intervention_period:
+                intervention_period_counter[index] += 1
+            else:
+                baseline_period_counter[index] += 1
+            total_emotion_counter[index] += 1
+            counted_period[index] += 1
+
+        def emo_counter_helper(counted,time):
+            for index in range(len(emotion_steps)):
+                if index == 0:
+                    emotion_steps[0].append(time)
+                else:
+                    emotion_steps[index].append(counted[index-1])
+
+
         for item in emo_var:
             # period close
-            while item[0] > start_from:
-                time_stump.append(start_from.strftime("%Y-%m-%d %H:%M:%S"))
-                happy.append(counted_period[0])
-                angry.append(counted_period[1])
-                nature.append(counted_period[2])
-                sad.append(counted_period[3])
-                other.append(counted_period[4])
-                conflict.append(counted_period[5])
+            while item[0] > start_date:
+                emo_counter_helper(counted_period, start_date.strftime("%Y-%m-%d %H:%M:%S"))
                 counted_period = [0, 0, 0, 0, 0, 0]
-                start_from = start_from + period
+                start_date = start_date + counting_step
 
             temp = json.loads(item[1])
             element = temp.index(max(temp[0:4]))
-
             if len(temp) == 6 and temp[5] > 0.525:
-                if item[0] > intervention_period:
-                    intervention_period_counter[5] += 1
-                else:
-                    baseline_period_counter[5] += 1
-                total_emotion_counter[5] += 1
-                counted_period[5] += 1
-
+                    intervention_period_helper(5)
             if temp[0] == temp[1] == temp[2] == temp[3] == temp[4] == 0:
                 continue
-            elif element == 0:
-                if item[0] > intervention_period:
-                    intervention_period_counter[0] += 1
-                else:
-                    baseline_period_counter[0] += 1
-                total_emotion_counter[0] += 1
-                counted_period[0] += 1
-            elif element == 1:
-                if item[0] > intervention_period:
-                    intervention_period_counter[1] += 1
-                else:
-                    baseline_period_counter[1] += 1
-                total_emotion_counter[1] += 1
-                counted_period[1] += 1
-            elif element == 2:
-                if item[0] > intervention_period:
-                    intervention_period_counter[2] += 1
-                else:
-                    baseline_period_counter[2] += 1
-                total_emotion_counter[2] += 1
-                counted_period[2] += 1
-            elif element == 3:
-                if item[0] > intervention_period:
-                    intervention_period_counter[3] += 1
-                else:
-                    baseline_period_counter[3] += 1
-                total_emotion_counter[3] += 1
-                counted_period[3] += 1
-            elif element == 4:
-                if item[0] > intervention_period:
-                    intervention_period_counter[4] += 1
-                else:
-                    baseline_period_counter[4] += 1
-                total_emotion_counter[4] += 1
-                counted_period[4] += 1
-
+            else:
+                intervention_period_helper(element)
             counter += 1
 
             # ensure the last one added
             if counter == len(emo_var) and counted_period != [0, 0, 0, 0, 0, 0]:
-                time_stump.append(item[0].strftime("%Y-%m-%d %H:%M:%S"))
-                happy.append(counted_period[0])
-                angry.append(counted_period[1])
-                nature.append(counted_period[2])
-                sad.append(counted_period[3])
-                other.append(counted_period[4])
-                conflict.append(counted_period[5])
+                emo_counter_helper(counted_period, start_date.strftime("%Y-%m-%d %H:%M:%S"))
 
         emotion_counter = [baseline_period_counter, intervention_period_counter, total_emotion_counter]
 
@@ -347,8 +233,6 @@ def tracking(request):
                     str(item[0]) + "<br>Action:" + str(action_ID) +
                     "<br>" + action_lookup_table[int(action_ID)])
 
-                action_ID = ""
-
             elif item[4] == "daytime:postrecomm:helpfulno:1" and item[2] != "-1.0":
                 bar_data = ""
                 if "1" in list(item[2]):
@@ -376,7 +260,6 @@ def tracking(request):
                 postrecomm_no.append(-1)
                 postrecomm_no_timestamp.append(str(item[0]))
 
-                action_ID = ""
 
             elif (item[4] == "daytime:postrecomm:helpfulno:1" or item[4] == "daytime:postrecomm:helpfulno:1") and item[
                 2] == "-1.0":
@@ -387,7 +270,6 @@ def tracking(request):
                         str(item[0]) + "<br>Action:" + str(action_ID) +
                         "<br>" + action_lookup_table[int(action_ID)] + "(No user feed back on post recommendation)")
 
-                    action_ID = ""
 
         postrecomm_list.append(postrecomm_yes_timestamp)
         postrecomm_list.append(postrecomm_no_timestamp)
@@ -404,7 +286,7 @@ def tracking(request):
         postrecomm_sum[5].append(now.strftime("%Y-%m-%d %H:%M:%S"))
 
         tracking_list.append(
-            [id[0], time_stump, happy, angry, nature, sad, other, conflict, act_list, baseline_list,
+            [id[0], emotion_steps[0], emotion_steps[1], emotion_steps[2], emotion_steps[3], emotion_steps[4], emotion_steps[5], emotion_steps[6], act_list, baseline_list,
              postrecomm_list, postrecomm_pie, postrecomm_sum, emotion_counter])
 
     return render(request, 'tracking.html', {'tracking': tracking_list})
@@ -451,8 +333,14 @@ def daily(request):
 
         goal = []
 
+        start = ''
+        if str(id[0]) in deployment_date_table:
+            start = deployment_date_table[str(id[0])][0]
+        else:
+            start = "06-01-2021 00:00:00"
+
         cursor.execute(
-            "SELECT TimeReceived, Response FROM `sch_data`.reward_data where QuestionName REGEXP \"evening:likert:stress:1|baseline:evening:likertstress:1\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND TimeReceived !=\"NA\" AND dep_id = (%s) ORDER BY TimeReceived",
+            "SELECT TimeReceived, Response FROM `sch_data`.reward_data where QuestionName REGEXP \"evening:likert:stress:1|baseline:evening:likertstress:1\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND TimeReceived !=\"NA\" AND dep_id = (%s) AND TimeSent > \"" + start + " \" ORDER BY TimeReceived",
             id)
         stress_db = cursor.fetchall()
         for item in stress_db:
@@ -461,7 +349,7 @@ def daily(request):
         evening.append([stress_timestamp, stress])
 
         cursor.execute(
-            "SELECT TimeReceived, Response FROM `sch_data`.reward_data where QuestionName REGEXP \"evening:likert:lonely:1|baseline:evening:likertlonely:1\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND TimeReceived !=\"NA\" AND dep_id = (%s) ORDER BY TimeReceived",
+            "SELECT TimeReceived, Response FROM `sch_data`.reward_data where QuestionName REGEXP \"evening:likert:lonely:1|baseline:evening:likertlonely:1\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND TimeReceived !=\"NA\" AND dep_id = (%s) AND TimeSent > \"" + start + " \" ORDER BY TimeReceived",
             id)
         lonely_db = cursor.fetchall()
         for item in lonely_db:
@@ -470,7 +358,7 @@ def daily(request):
         evening.append([lonely_timestamp, lonely])
 
         cursor.execute(
-            "SELECT TimeReceived, Response FROM `sch_data`.reward_data where QuestionName REGEXP \"evening:likert:health:1|baseline:evening:likerthealth:1\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND TimeReceived !=\"NA\" AND dep_id = (%s) ORDER BY TimeReceived",
+            "SELECT TimeReceived, Response FROM `sch_data`.reward_data where QuestionName REGEXP \"evening:likert:health:1|baseline:evening:likerthealth:1\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND TimeReceived !=\"NA\" AND dep_id = (%s) AND TimeSent > \"" + start + " \" ORDER BY TimeReceived",
             id)
         health1_db = cursor.fetchall()
         for item in health1_db:
@@ -479,7 +367,7 @@ def daily(request):
         evening.append([health1_timestamp, health1])
 
         cursor.execute(
-            "SELECT TimeReceived, Response FROM `sch_data`.reward_data where QuestionName REGEXP \"evening:likert:health:2|baseline:evening:likerthealth:2\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND TimeReceived !=\"NA\" AND dep_id = (%s) ORDER BY TimeReceived",
+            "SELECT TimeReceived, Response FROM `sch_data`.reward_data where QuestionName REGEXP \"evening:likert:health:2|baseline:evening:likerthealth:2\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND TimeReceived !=\"NA\" AND dep_id = (%s) AND TimeSent > \"" + start + " \" ORDER BY TimeReceived",
             id)
         health2_db = cursor.fetchall()
         for item in health2_db:
@@ -491,7 +379,7 @@ def daily(request):
             return bool(re.search(r'^\d+$', item))
 
         cursor.execute(
-            "SELECT TimeReceived, Response FROM `sch_data`.reward_data where QuestionName REGEXP \"evening:textbox:interactions:1|baseline:evening:textboxinteractions:1\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND TimeReceived !=\"NA\" AND dep_id = (%s) ORDER BY TimeReceived",
+            "SELECT TimeReceived, Response FROM `sch_data`.reward_data where QuestionName REGEXP \"evening:textbox:interactions:1|baseline:evening:textboxinteractions:1\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND TimeReceived !=\"NA\" AND dep_id = (%s) AND TimeSent > \"" + start + " \" ORDER BY TimeReceived",
             id)
         interactions1_db = cursor.fetchall()
         for item in interactions1_db:
@@ -503,7 +391,7 @@ def daily(request):
         evening.append([interactions1_timestamp, interactions1])
 
         cursor.execute(
-            "SELECT TimeReceived, Response FROM `sch_data`.reward_data where QuestionName REGEXP \"evening:textbox:interactions:2|baseline:evening:textboxinteractions:2\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND TimeReceived !=\"NA\" AND dep_id = (%s) ORDER BY TimeReceived",
+            "SELECT TimeReceived, Response FROM `sch_data`.reward_data where QuestionName REGEXP \"evening:textbox:interactions:2|baseline:evening:textboxinteractions:2\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND TimeReceived !=\"NA\" AND dep_id = (%s) AND TimeSent > \"" + start + " \" ORDER BY TimeReceived",
             id)
         interactions2_db = cursor.fetchall()
         for item in interactions2_db:
@@ -512,7 +400,7 @@ def daily(request):
         evening.append([interactions2_timestamp, interactions2])
 
         cursor.execute(
-            "SELECT TimeReceived, Response, QuestionName FROM `sch_data`.reward_data where QuestionName REGEXP \"evening:daily:goalyes:1|evening:daily:goalno:1\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND TimeReceived !=\"NA\" AND dep_id = (%s) ORDER BY TimeReceived",
+            "SELECT TimeReceived, Response, QuestionName FROM `sch_data`.reward_data where QuestionName REGEXP \"evening:daily:goalyes:1|evening:daily:goalno:1\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND TimeReceived !=\"NA\" AND dep_id = (%s) AND TimeSent > \"" + start + " \" ORDER BY TimeReceived",
             id)
         goal_db = cursor.fetchall()
 
@@ -554,7 +442,7 @@ def daily(request):
         helpful_timestamp = []
 
         cursor.execute(
-            "SELECT TimeReceived, Response, QuestionName FROM `sch_data`.reward_data where QuestionName REGEXP \"evening:stress:managno:1|evening:stress:managyes:1\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND TimeReceived !=\"NA\" AND dep_id = (%s) ORDER BY TimeReceived",
+            "SELECT TimeReceived, Response, QuestionName FROM `sch_data`.reward_data where QuestionName REGEXP \"evening:stress:managno:1|evening:stress:managyes:1\" AND Response !=\"-1.0\" AND Response !=\"-1\" AND TimeReceived !=\"NA\" AND dep_id = (%s) AND TimeSent > \"" + start + " \" ORDER BY TimeReceived",
             id)
         about_db = cursor.fetchall()
         about_yes_timestamp = []
@@ -565,9 +453,22 @@ def daily(request):
         about_no_text = []
         positive = [0, 0, 0, 0]
         negative = [0, 0, 0]
-        about_sum = [[[[0], ['2021-07-01 00:00:00']], [[0], ['2021-07-01 00:00:00']], [[0], ['2021-07-01 00:00:00']],
-                      [[0], ['2021-07-01 00:00:00']]],
-                     [[[0], ['2021-07-01 00:00:00']], [[0], ['2021-07-01 00:00:00']], [[0], ['2021-07-01 00:00:00']]]]
+        now = datetime.datetime.now()
+
+        if str(id[0]) in deployment_date_table:
+            start_date = deployment_date_table[str(id[0])][0]
+            if deployment_date_table[str(id[0])][1] == "":
+                end_date = now.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                end_date = deployment_date_table[str(id[0])][1]
+
+        else:
+            start_date = "2021-07-01 00:00:00"
+            end_date = now.strftime("%Y-%m-%d %H:%M:%S")
+
+        about_sum = [[[[0], [start_date]], [[0], [start_date]], [[0], [start_date]], [[0], [start_date]]],
+                     [[[0], [start_date]], [[0], [start_date]], [[0], [start_date]]]]
+
         for item in about_db:
             if item[2] == "evening:stress:managyes:1":
                 bar_data = ""
@@ -587,7 +488,7 @@ def daily(request):
                     about_sum[0][2][0].append(positive[2])
                     about_sum[0][2][1].append(str(item[0]))
                 if "4" in list(item[1]):
-                    bar_data += " Enjoyable Activity"
+                    bar_data += " Enjoyable Activity<br>"
                     positive[3] += 1
                     about_sum[0][3][0].append(positive[3])
                     about_sum[0][3][1].append(str(item[0]))
@@ -615,21 +516,21 @@ def daily(request):
                 about_no_text.append(bar_data)
                 about_no.append(-1)
 
-        now = datetime.datetime.now()
         about_sum[0][0][0].append(about_sum[0][0][0][-1])
-        about_sum[0][0][1].append(now.strftime("%Y-%m-%d %H:%M:%S"))
+        about_sum[0][0][1].append(end_date)
         about_sum[0][1][0].append(about_sum[0][1][0][-1])
-        about_sum[0][1][1].append(now.strftime("%Y-%m-%d %H:%M:%S"))
+        about_sum[0][1][1].append(end_date)
         about_sum[0][2][0].append(about_sum[0][2][0][-1])
-        about_sum[0][2][1].append(now.strftime("%Y-%m-%d %H:%M:%S"))
+        about_sum[0][2][1].append(end_date)
         about_sum[0][3][0].append(about_sum[0][3][0][-1])
-        about_sum[0][3][1].append(now.strftime("%Y-%m-%d %H:%M:%S"))
+        about_sum[0][3][1].append(end_date)
         about_sum[1][0][0].append(about_sum[1][0][0][-1])
-        about_sum[1][0][1].append(now.strftime("%Y-%m-%d %H:%M:%S"))
+        about_sum[1][0][1].append(end_date)
         about_sum[1][1][0].append(about_sum[1][1][0][-1])
-        about_sum[1][1][1].append(now.strftime("%Y-%m-%d %H:%M:%S"))
+        about_sum[1][1][1].append(end_date)
         about_sum[1][2][0].append(about_sum[1][2][0][-1])
-        about_sum[1][2][1].append(now.strftime("%Y-%m-%d %H:%M:%S"))
+        about_sum[1][2][1].append(end_date)
+
 
         about.append(about_yes_timestamp)
         about.append(about_no_timestamp)
@@ -657,11 +558,6 @@ def daily(request):
         helpful_reduce = "Helped reducing stress:<br>"
         last_time = ''
         for item in helpful_db:
-            while datetime.datetime.strptime(item[0], "%Y-%m-%d %H:%M:%S") > start_from:
-                helpful_timestamp.append([last_time, int(helpful_rate), (helpful_most + helpful_reduce)])
-                start_from = start_from + period
-                helpful_most = "Helped most:<br>"
-                helpful_reduce = "Helped reducing stress:<br>"
             if item[2] == "evening:stress:managyes:2":
                 helpful_rate = item[1]
             elif item[2] == "evening:system:helpful:2":
@@ -684,6 +580,13 @@ def daily(request):
                 if "4" in list(item[1]):
                     helpful_reduce += " Enjoyable Activity<br>"
             last_time = item[0]
+
+            while datetime.datetime.strptime(item[0], "%Y-%m-%d %H:%M:%S") > start_from:
+                helpful_timestamp.append([last_time, int(helpful_rate), (helpful_most + helpful_reduce)])
+                start_from = start_from + period
+                helpful_most = "Helped most:<br>"
+                helpful_reduce = "Helped reducing stress:<br>"
+
         helpful.append([x[0] for x in helpful_timestamp])
         helpful.append([x[1] for x in helpful_timestamp])
         helpful.append([x[2] for x in helpful_timestamp])
@@ -710,7 +613,7 @@ def daily(request):
                 continue
         reactive_list = [reactive_timestamp, reactive, reactive_pie]
 
-        daily_list.append([id[0], evening, goal, about, helpful,reactive_list])
+        daily_list.append([id[0], evening, goal, about, helpful, reactive_list])
 
     return render(request, 'daily.html', {"daily": daily_list})
 
@@ -826,7 +729,8 @@ def daily(request):
 
 def weekly(request):
     cursor = connections['ema'].cursor()
-    cursor.execute("SELECT DISTINCT dep_id FROM `sch_data`.`reward_data` WHERE dep_id NOT regexp \"^-1$|^200$|^999$|^10$|^11111$|^11112$\"")
+    cursor.execute(
+        "SELECT DISTINCT dep_id FROM `sch_data`.`reward_data` WHERE dep_id NOT regexp \"^-1$|^200$|^999$|^10$|^11111$|^11112$\"")
     dep_id = cursor.fetchall()
     weekly = []
 
